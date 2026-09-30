@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Referencias - Mercados Eléctricos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f0f0f;
+            --bg-light: #F7F5F0;
+            --accent-dark: #1a1a1a;
+            --accent-light: #EBE6DC;
+        }
+        body { 
+            margin: 0; padding: 0; background-color: var(--bg-dark); 
+            overflow: hidden; font-family: 'Outfit', sans-serif; 
+            -webkit-font-smoothing: antialiased;
+        }
+        .font-serif { font-family: 'Cormorant Garamond', serif; }
+        
+        /* Motor de Diapositivas */
+        .slide {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            opacity: 0;
+            transform: scale(0.97);
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .slide.active {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        /* Contenedor seguro para Scroll */
+        .content-scroll {
+            max-height: 85dvh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(107, 114, 128, 0.3) transparent;
+            padding-bottom: 6rem; /* Espacio para botones fijos */
+            width: 100%;
+        }
+        .content-scroll::-webkit-scrollbar { width: 4px; }
+        .content-scroll::-webkit-scrollbar-track { background: transparent; }
+        .content-scroll::-webkit-scrollbar-thumb { background-color: rgba(107, 114, 128, 0.3); border-radius: 10px; }
+        
+        /* Estéticas Avanzadas CSS */
+        .bg-noise {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.04;
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .bento-card-dark {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+        }
+        .bento-card-light {
+            background: rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(12px);
+        }
+        .giant-bg-text {
+            position: absolute;
+            font-size: 30vw;
+            line-height: 0.8;
+            color: rgba(255,255,255,0.02);
+            z-index: 0;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .giant-bg-text-light {
+            color: rgba(0,0,0,0.03);
+        }
+        
+        /* Control UI colors dynamically */
+        body.light-mode-active .nav-btn {
+            background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); color: #000;
+        }
+        body.light-mode-active .nav-btn:hover { background: rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="text-white antialiased transition-colors duration-500">
+
+<!-- Nav UI & Controles -->
+<div class="fixed bottom-4 md:bottom-8 right-4 md:right-8 z-[100] flex gap-3">
+    <button id="btn-prev" class="nav-btn w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10 transition-all text-white">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+    </button>
+    <button id="btn-next" class="nav-btn w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10 transition-all text-white">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+    </button>
+    <button id="btn-fs" class="nav-btn w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10 transition-all text-white hidden md:flex" title="Fullscreen (F)">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+    </button>
+</div>
+
+<!-- Barra de Progreso -->
+<div class="fixed top-0 left-0 h-1 bg-transparent z-[100] w-full">
+    <div id="progress" class="h-full bg-neutral-500 transition-all duration-300 w-0"></div>
+</div>
+
+<!-- Slides Container -->
+<div id="deck">
+
+    <!-- Slide 1: Portada (Oscura) -->
+    <div class="slide active bg-[#0f0f0f] text-neutral-100" data-theme="dark">
+        <div class="bg-noise"></div>
+        <div class="absolute -top-[20vh] -left-[10vw] w-[60vw] h-[60vw] bg-neutral-800 rounded-full mix-blend-screen filter blur-[120px] opacity-30"></div>
+        
+        <div class="content-scroll flex flex-col justify-center px-6 md:px-24 w-full relative z-10 h-full max-w-7xl mx-auto">
+            <span class="uppercase tracking-widest text-xs md:text-sm text-neutral-400 mb-8 block font-semibold border-l-2 border-neutral-600 pl-4 ml-2">Universidad Tecnológica de Panamá</span>
+            
+            <h1 class="font-serif text-5xl md:text-7xl lg:text-8xl leading-[1.1] md:leading-[1] font-semibold mb-6 text-white tracking-tight">
+                Comparación de<br>
+                <span class="italic font-light text-neutral-400">Mercados Eléctricos:</span><br>
+                Centralizados,<br>
+                Descentralizados
+            </h1>
+            <p class="text-neutral-400 text-lg md:text-2xl font-light max-w-3xl mb-16 ml-1 md:ml-2">y las consecuencias de la inserción de energías renovables.</p>
+            
+            <div class="mt-auto border-t border-neutral-800 pt-8 ml-2">
+                <h2 class="font-serif italic text-3xl md:text-5xl text-neutral-200">Referencias Bibliográficas</h2>
+                <p class="text-neutral-500 mt-3 text-sm md:text-base font-light tracking-wide uppercase">38 Fuentes Documentales</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 2: Refs 1-4 (Clara, Bento Grid) -->
+    <div class="slide bg-[#F7F5F0] text-neutral-900" data-theme="light">
+        <div class="bg-noise" style="opacity: 0.08;"></div>
+        <div class="giant-bg-text giant-bg-text-light font-serif top-0 left-0 hidden md:block">01-04</div>
+        
+        <div class="content-scroll px-6 md:px-20 pt-16 w-full relative z-10 max-w-7xl mx-auto flex flex-col h-full">
+            <h3 class="font-serif italic text-4xl md:text-5xl text-neutral-800 mb-10 border-b border-neutral-300 pb-4">Gestión & Transición (01-04)</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                <div class="bento-card-light p-8 rounded-2xl flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <span class="text-4xl font-serif text-neutral-300 italic mb-4">[1]</span>
+                    <p class="text-neutral-700 text-lg font-light leading-relaxed"><strong>D. Felipe and V. Reyes</strong>, "Sistema De Gestión Energética Para La Interconexión De Microrredes," 2022.</p>
+                </div>
+                <div class="bento-card-light p-8 rounded-2xl flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <span class="text-4xl font-serif text-neutral-300 italic mb-4">[2]</span>
+                    <p class="text-neutral-700 text-lg font-light leading-relaxed"><strong>P. Constanza and F. Carrasco</strong>, "Modelación de la Gestión de la Demanda Eléctrica en Redes Inteligentes con Mecanismos Dinámicos de Mercado," 2023.</p>
+                </div>
+                <div class="bento-card-light p-8 rounded-2xl flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <span class="text-4xl font-serif text-neutral-300 italic mb-4">[3]</span>
+                    <p class="text-neutral-700 text-lg font-light leading-relaxed"><strong>A. G. Nogar, L. V. Clementi, and E. V. Decunto</strong>, "Argentina en el contexto de crisis y transición energética," <em>Rev. Univ. Geogr.</em>, vol. 30, no. 1, pp. 107-132, 2021.</p>
+                </div>
+                <div class="bento-card-light p-8 rounded-2xl flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <span class="text-4xl font-serif text-neutral-300 italic mb-4">[4]</span>
+                    <p class="text-neutral-700 text-lg font-light leading-relaxed"><strong>A. V. Rendón</strong>, "Oportunidades en el uso de tecnología blockchain para el mercado de energía en Colombia," p. 132, 2021.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: Refs 5-9 (Oscura, Editorial List) -->
+    <div class="slide bg-[#111111] text-neutral-200" data-theme="dark">
+        <div class="bg-noise"></div>
+        <div class="content-scroll px-6 md:px-32 pt-20 w-full relative z-10 max-w-6xl mx-auto h-full flex flex-col justify-center">
+            
+            <div class="space-y-12 border-l border-neutral-700 pl-8 md:pl-12">
+                <div class="relative">
+                    <span class="absolute -left-[4.5rem] md:-left-[5.5rem] top-1 font-serif text-2xl text-neutral-500 italic">05</span>
+                    <p class="text-lg md:text-xl font-light"><strong>O. Segura-Bonilla and J. Hernández-Milián</strong>, "Aspectos conceptuales y metodológicos para la construcción de un Índice de Ciudades Inteligentes y Sostenibles," <em>Cuad. Política Económica</em>, 2021.</p>
+                </div>
+                <div class="relative">
+                    <span class="absolute -left-[4.5rem] md:-left-[5.5rem] top-1 font-serif text-2xl text-neutral-500 italic">06</span>
+                    <p class="text-lg md:text-xl font-light"><strong>A. Sleisz, D. Divenyi, P. Sores, and D. Raisz</strong>, "Performance Comparison of Integrated Formulations for European Electricity Market Clearing," <em>Int. Conf. Eur. Energy Mark. EEM</em>, vol. 2022-Septe, no. 864274, pp. 0-5, 2022.</p>
+                </div>
+                <div class="relative">
+                    <span class="absolute -left-[4.5rem] md:-left-[5.5rem] top-1 font-serif text-2xl text-neutral-500 italic">07</span>
+                    <p class="text-lg md:text-xl font-light"><strong>D. Plata</strong>, "Estudio de la implementación de la tecnología blockchain en un sistema low voltage distribution loop," 2020.</p>
+                </div>
+                <div class="relative">
+                    <span class="absolute -left-[4.5rem] md:-left-[5.5rem] top-1 font-serif text-2xl text-neutral-500 italic">08</span>
+                    <p class="text-lg md:text-xl font-light"><strong>S. Galera</strong>, "CAMBIO DE MODELO EN LA TRANSICIÓN ENERGÉTICA: OTRO TREN QUE PASARÁ?," pp. 1-20, 2021.</p>
+                </div>
+                <div class="relative">
+                    <span class="absolute -left-[4.5rem] md:-left-[5.5rem] top-1 font-serif text-2xl text-neutral-500 italic">09</span>
+                    <p class="text-lg md:text-xl font-light"><strong>Secretaría de Estado de Energía</strong>, Estrategia de Almacenamiento Energético. 2021.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Refs 10-13 (Clara, Scrapbook Cards) -->
+    <div class="slide bg-[#EBE6DC] text-neutral-900" data-theme="light">
+        <div class="bg-noise" style="opacity: 0.08;"></div>
+        
+        <div class="content-scroll px-6 py-20 w-full relative z-10 max-w-6xl mx-auto h-full flex flex-col md:flex-row items-center justify-center gap-8">
+            <h3 class="font-serif italic text-4xl md:hidden text-neutral-800 mb-6 w-full text-left">Generación Distribuida</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full relative">
+                <!-- Tarjeta Girada 1 -->
+                <div class="bg-white p-8 shadow-xl -rotate-2 hover:rotate-0 transition-transform">
+                    <span class="block font-serif text-5xl text-neutral-200 mb-2">10</span>
+                    <p class="text-base font-light text-neutral-800"><strong>J. D. Mercado-bautista et al.</strong>, "Impactos de la generación distribuida en la red inteligente: un análisis documental...", vol. 3, pp. 593-609, 2022.</p>
+                </div>
+                <!-- Tarjeta Girada 2 -->
+                <div class="bg-white p-8 shadow-xl md:translate-y-12 rotate-1 hover:rotate-0 transition-transform">
+                    <span class="block font-serif text-5xl text-neutral-200 mb-2">11</span>
+                    <p class="text-base font-light text-neutral-800"><strong>D. Gómez</strong>, "Mercados Minoristas Alternativos en el Mercado Eléctrico Colombiano," p. 55, 2020.</p>
+                </div>
+                <!-- Tarjeta Girada 3 -->
+                <div class="bg-white p-8 shadow-xl md:-translate-y-8 rotate-2 hover:rotate-0 transition-transform">
+                    <span class="block font-serif text-5xl text-neutral-200 mb-2">12</span>
+                    <p class="text-base font-light text-neutral-800"><strong>R. Silva</strong>, "DESARROLLO DE APLICACIÓN BLOCKCHAIN PARA PROYECTOS DE GENERACIÓN DISTRIBUIDA EN CHILE," vol. 2, no. 1, pp. 1-19, 2019.</p>
+                </div>
+                <!-- Tarjeta Girada 4 -->
+                <div class="bg-white p-8 shadow-xl md:translate-y-4 -rotate-1 hover:rotate-0 transition-transform">
+                    <span class="block font-serif text-5xl text-neutral-200 mb-2">13</span>
+                    <p class="text-base font-light text-neutral-800"><strong>V. Ahlqvist, P. Holmberg, and T. Tangerås</strong>, "A survey comparing centralized and decentralized electricity markets," <em>Energy Strateg. Rev.</em>, vol. 40. 2022.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: Refs 14-18 (Oscura, Asimétrica) -->
+    <div class="slide bg-[#1a1a1a] text-neutral-200" data-theme="dark">
+        <div class="bg-noise"></div>
+        <div class="giant-bg-text font-serif top-1/2 -translate-y-1/2 right-[-10vw] hidden lg:block opacity-[0.03]">14-18</div>
+
+        <div class="content-scroll px-6 md:px-24 pt-20 w-full relative z-10 max-w-7xl mx-auto h-full flex flex-col md:flex-row gap-12">
+            <div class="md:w-1/3 border-t border-neutral-700 pt-6">
+                <h3 class="font-serif italic text-4xl text-neutral-400">Blockchain &<br>Digitalización</h3>
+                <p class="text-neutral-500 mt-4 text-sm uppercase tracking-widest">Fuentes 14 al 18</p>
+            </div>
+            
+            <div class="md:w-2/3 flex flex-col gap-10">
+                <p class="text-lg font-light leading-relaxed border-l-4 border-neutral-600 pl-6">
+                    <span class="font-serif italic text-2xl text-neutral-400 block mb-1">14</span>
+                    <strong>J. P. García</strong>, "La tecnología blockchain como una herramienta para mejorar la estructura y funcionamiento de los mercados eléctricos," 2021.
+                </p>
+                <p class="text-lg font-light leading-relaxed border-l-4 border-neutral-600 pl-6">
+                    <span class="font-serif italic text-2xl text-neutral-400 block mb-1">15</span>
+                    <strong>D. Messina, R. Contreras, L. René, and S. Pavez</strong>, "Tendencias en materia de digitalización del sector eléctrico," CEPAL, pp. 1-36, 2022.
+                </p>
+                <p class="text-lg font-light leading-relaxed border-l-4 border-neutral-600 pl-6">
+                    <span class="font-serif italic text-2xl text-neutral-400 block mb-1">16</span>
+                    <strong>T. Belalcázar</strong>, "DEMANDA EN EL MERCADO ELÉCTRICO COLOMBIANO," 2020.
+                </p>
+                <p class="text-lg font-light leading-relaxed border-l-4 border-neutral-600 pl-6">
+                    <span class="font-serif italic text-2xl text-neutral-400 block mb-1">17</span>
+                    <strong>L. A. Flores Becerra</strong>, "Transversalidad de la administración pública, nuevo concepto para ubicar dependencias y entidades atípicas del sector eléctrico mexicano," <em>RICSH</em>, vol. 9, no. 17, pp. 1-26, 2019.
+                </p>
+                <p class="text-lg font-light leading-relaxed border-l-4 border-neutral-600 pl-6">
+                    <span class="font-serif italic text-2xl text-neutral-400 block mb-1">18</span>
+                    <strong>F. Barrera, A. Escobar, M. Maiguashca, and H. Rudnick</strong>, "Misión para la Transformación Energética-1-Documento Foco 5: Institucional y Regulatorio Misión de transformación energética," pp. 1-36.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: Refs 19-23 (Clara, Minimalist List) -->
+    <div class="slide bg-[#F7F5F0] text-neutral-900" data-theme="light">
+        <div class="bg-noise" style="opacity: 0.08;"></div>
+        
+        <div class="content-scroll px-6 md:px-24 py-20 w-full relative z-10 max-w-5xl mx-auto h-full">
+            <div class="flex flex-col gap-12">
+                <div class="group">
+                    <p class="text-sm font-semibold text-neutral-400 tracking-wider mb-2">FUENTE [19]</p>
+                    <p class="text-xl md:text-2xl font-light text-neutral-800 leading-snug"><strong>T. Lomane, A. Mahnitko, K. Berzina, and I. Zicmane.</strong> "Designing an electrical network configuration to improve the efficiency of electricity market," <em>Int. Conf. Eur. Energy Mark. EEM</em>, 2018.</p>
+                </div>
+                <div class="group">
+                    <p class="text-sm font-semibold text-neutral-400 tracking-wider mb-2">FUENTE [20]</p>
+                    <p class="text-xl md:text-2xl font-light text-neutral-800 leading-snug"><strong>S. Liu et al.</strong>, "Empirical evidence for the edge of a centralized regional market over a cross-province balancing market in allocating electricity resources: A case study of Yunnan in China," <em>Energy Reports</em>, vol. 9, pp. 911-921, 2023.</p>
+                </div>
+                <div class="group">
+                    <p class="text-sm font-semibold text-neutral-400 tracking-wider mb-2">FUENTE [21]</p>
+                    <p class="text-xl md:text-2xl font-light text-neutral-800 leading-snug"><strong>E. Hernández-Mayoral et al.</strong>, "A Comprehensive Review on Power-Quality Issues, Optimization Techniques, and Control Strategies of Microgrid Based on Renewable Energy Sources," <em>Sustainability</em>, vol. 15, no. 12, p. 9847, 2023.</p>
+                </div>
+                <div class="group">
+                    <p class="text-sm font-semibold text-neutral-400 tracking-wider mb-2">FUENTE [22]</p>
+                    <p class="text-xl md:text-2xl font-light text-neutral-800 leading-snug"><strong>A. Li</strong>, "Centralization or decentralization: Divergent paths of governing offshore wind between China and Japan." <em>Energy Res. Soc. Sci.</em>, vol. 84, p. 102426, 2022.</p>
+                </div>
+                <div class="group">
+                    <p class="text-sm font-semibold text-neutral-400 tracking-wider mb-2">FUENTE [23]</p>
+                    <p class="text-xl md:text-2xl font-light text-neutral-800 leading-snug"><strong>S. Thapar</strong>, "Centralized vs decentralized solar: A comparison study (India)," <em>Renew. Energy</em>, vol. 194, pp. 687-704, 2022.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: Refs 24-28 (Oscura, Bento Grid) -->
+    <div class="slide bg-[#141414] text-neutral-200" data-theme="dark">
+        <div class="bg-noise"></div>
+        <div class="content-scroll px-6 md:px-20 pt-16 w-full relative z-10 max-w-7xl mx-auto flex flex-col h-full">
+            <h3 class="font-serif italic text-4xl md:text-5xl text-neutral-400 mb-8 border-b border-neutral-800 pb-4">Microrredes & Mercados Minoristas (24-28)</h3>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 flex-1">
+                <div class="bento-card-dark p-6 rounded-2xl flex flex-col lg:col-span-1">
+                    <span class="text-3xl font-serif text-neutral-500 italic mb-3">24</span>
+                    <p class="text-neutral-300 font-light"><strong>S. G. Rodrigo and M. O. García</strong>, "Energía más allá del mercado," 2022.</p>
+                </div>
+                <div class="bento-card-dark p-6 rounded-2xl flex flex-col lg:col-span-2">
+                    <span class="text-3xl font-serif text-neutral-500 italic mb-3">25</span>
+                    <p class="text-neutral-300 font-light"><strong>K. Lichtenegger et al.</strong>, "Decentralized heating grid operation: A comparison of centralized and agent-based optimization," <em>Sustain. Energy, Grids Networks</em>, vol. 21, p. 100300, 2020.</p>
+                </div>
+                <div class="bento-card-dark p-6 rounded-2xl flex flex-col lg:col-span-3">
+                    <span class="text-3xl font-serif text-neutral-500 italic mb-3">26</span>
+                    <p class="text-neutral-300 font-light text-lg"><strong>J. C. O. ROJAS, E. R. ARCHUNDIA, S. A. C. VILLANUEVA, and ...</strong> "Propuesta de Mercado Eléctrico Minorista Transactivo en México," <em>Identidad Energ.</em>, pp. 11-17, 2019.</p>
+                </div>
+                <div class="bento-card-dark p-6 rounded-2xl flex flex-col lg:col-span-2">
+                    <span class="text-3xl font-serif text-neutral-500 italic mb-3">27</span>
+                    <p class="text-neutral-300 font-light"><strong>E. González, D. Gualotuña, and J. F. Quinteros Flores</strong>, "Diseño de una Micro-Red óptima mediante el uso del recurso solar fotovoltaico en la Universidad Politécnica Salesiana Campus Sur...", <em>I+D Tecnológico</em>, vol. 18, no. 2, pp. 109-123, 2022.</p>
+                </div>
+                <div class="bento-card-dark p-6 rounded-2xl flex flex-col lg:col-span-1">
+                    <span class="text-3xl font-serif text-neutral-500 italic mb-3">28</span>
+                    <p class="text-neutral-300 font-light"><strong>J. F. Quinteros Flores et al.</strong>, "Diseño óptimo de una micro-red para maximizar la generación de potencia eléctrica en Paragachi y Wildtecsa...", <em>I+D Tecnológico</em>, vol. 19, no. 2, pp. 5-14, 2023.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: Refs 29-33 (Clara, Asimétrica) -->
+    <div class="slide bg-[#F2F0E9] text-neutral-900" data-theme="light">
+        <div class="bg-noise" style="opacity: 0.08;"></div>
+        
+        <div class="content-scroll px-6 md:px-24 pt-20 w-full relative z-10 max-w-7xl mx-auto h-full flex flex-col md:flex-row gap-12">
+            <div class="md:w-2/3 flex flex-col gap-8">
+                <p class="text-lg font-light leading-relaxed bg-white/50 p-6 rounded-lg shadow-sm border border-neutral-200">
+                    <span class="font-serif font-bold text-neutral-800 block mb-1">29. E. Ramos</span>
+                    "La generación distribuida: El camino hacia la producción descentralizada de electricidad y pautas para su reglamentación," <em>Forseti Rev. Derecho</em>, vol. 8, no. 11, pp. 7-35, 2020.
+                </p>
+                <p class="text-lg font-light leading-relaxed bg-white/50 p-6 rounded-lg shadow-sm border border-neutral-200">
+                    <span class="font-serif font-bold text-neutral-800 block mb-1">30. A. Sergent</span>
+                    "Los mercados eléctricos a la hora de la transición energética en perspectiva comparada," <em>Rev. Econ. Y DESAFÍOS DEL Desarro.</em>, vol. 1, 2022.
+                </p>
+                <p class="text-lg font-light leading-relaxed bg-white/50 p-6 rounded-lg shadow-sm border border-neutral-200">
+                    <span class="font-serif font-bold text-neutral-800 block mb-1">31. L. Li and S. Zhang</span>
+                    "Techno-economic and environmental assessment of multiple distributed energy systems coordination under centralized and decentralized framework," <em>Sustain. Cities Soc.</em>, vol. 72, p. 103076, 2021.
+                </p>
+                <p class="text-lg font-light leading-relaxed bg-white/50 p-6 rounded-lg shadow-sm border border-neutral-200">
+                    <span class="font-serif font-bold text-neutral-800 block mb-1">32. J. C. Agrela, I. Rezende, and T. Soares</span>
+                    "Analysis of battery energy storage systems participation in multi-services electricity markets," <em>Int. Conf. Eur. Energy Mark. EEM</em>, pp. 1-6, 2022.
+                </p>
+                <p class="text-lg font-light leading-relaxed bg-white/50 p-6 rounded-lg shadow-sm border border-neutral-200">
+                    <span class="font-serif font-bold text-neutral-800 block mb-1">33. J. J. González and Á. Cardena</span>
+                    "Mercado eléctrico en Colombia: transición hacia una arquitectura descentralizada," FEDESARROLLO, 2018.
+                </p>
+            </div>
+            <div class="md:w-1/3 flex flex-col justify-end pb-12 hidden md:flex">
+                <h3 class="font-serif italic text-6xl text-neutral-300 text-right leading-none">Almacenamiento<br>y Transición</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: Refs 34-38 (Oscura, Tipografía Central) -->
+    <div class="slide bg-[#0f0f0f] text-neutral-200" data-theme="dark">
+        <div class="bg-noise"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-[#111] z-0 pointer-events-none"></div>
+
+        <div class="content-scroll px-6 md:px-20 pt-16 w-full relative z-10 max-w-4xl mx-auto h-full flex flex-col text-center">
+            <h3 class="font-serif italic text-3xl md:text-4xl text-neutral-500 mb-12">Modelos de Mercados e Implementación (34-38)</h3>
+            
+            <div class="space-y-10 text-left">
+                <p class="text-lg md:text-xl font-light">
+                    <span class="text-neutral-600 font-serif mr-4">[34]</span>
+                    <strong>J. Correa Lopez</strong>, "Asignación Optima de Recursos Energéticos a través de Algoritmo Húngaro y Bipartite Matching para Respuesta a la Demanda en Microredes," p. 34, 2019.
+                </p>
+                <p class="text-lg md:text-xl font-light">
+                    <span class="text-neutral-600 font-serif mr-4">[35]</span>
+                    <strong>C. A. Beltran Padilla</strong>, "Smart Grid: Rompiendo el pensamiento de una red centralizada.," 2023.
+                </p>
+                <p class="text-lg md:text-xl font-light">
+                    <span class="text-neutral-600 font-serif mr-4">[36]</span>
+                    <strong>S. Díaz, Y. Gómez, J. Silva, and E. Noriega</strong>, "Estudio comparativo de modelos de mercados eléctricos en países de America Latina," <em>Espacios</em>, vol. 38, no. 58, pp. 22-33, 2017.
+                </p>
+                <p class="text-lg md:text-xl font-light">
+                    <span class="text-neutral-600 font-serif mr-4">[37]</span>
+                    <strong>J. D. García Hernández</strong>, "Antecedentes para la constitución de un mercado eléctrico descentralizado en Colombia," 2020.
+                </p>
+                <p class="text-lg md:text-xl font-light">
+                    <span class="text-neutral-600 font-serif mr-4">[38]</span>
+                    <strong>J. B. Bejerano</strong>, "Mercados eléctricos ante la transición energética: diseño y retos de futuro," <em>Presup. y Gasto Público</em>, no. 97, pp. 177-192, 2019.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: Cierre (Oscura, Editorial) -->
+    <div class="slide bg-[#050505] text-neutral-100" data-theme="dark">
+        <div class="bg-noise" style="opacity: 0.05;"></div>
+        
+        <div class="content-scroll flex flex-col justify-center items-center text-center px-6 w-full relative z-10 h-full max-w-4xl mx-auto">
+            <h2 class="font-serif italic text-6xl md:text-8xl text-white mb-6">Fin del Anexo</h2>
+            <div class="w-24 h-[1px] bg-neutral-600 mb-8"></div>
+            <p class="text-neutral-400 font-light tracking-widest uppercase text-sm md:text-base">Documentación Bibliográfica Completa</p>
+            <p class="text-neutral-600 mt-12 text-sm font-serif italic">Universidad Tecnológica de Panamá · 2024</p>
+        </div>
+    </div>
+
+</div>
+
+<!-- Motor Interactivo JS -->
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const slides = document.querySelectorAll('.slide');
+        const progressBar = document.getElementById('progress');
+        const totalSlides = slides.length;
+        let currentSlide = 0;
+
+        // Elementos UI
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+        const btnFs = document.getElementById('btn-fs');
+
+        function updateSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                if (i === index) slide.classList.add('active');
+            });
+            
+            // Progress bar update
+            progressBar.style.width = `${((index) / (totalSlides - 1)) * 100}%`;
+            
+            // Theme adaptation for controls
+            const currentTheme = slides[index].getAttribute('data-theme');
+            if(currentTheme === 'light') {
+                document.body.classList.add('light-mode-active');
+            } else {
+                document.body.classList.remove('light-mode-active');
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlide(currentSlide);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide(currentSlide);
+            }
+        }
+
+        // Eventos Botones
+        btnNext.addEventListener('click', nextSlide);
+        btnPrev.addEventListener('click', prevSlide);
+
+        // Teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+            if (e.key.toLowerCase() === 'f') toggleFullScreen();
+        });
+
+        // Swipe para Móviles
+        let touchstartX = 0;
+        let touchendX = 0;
+        const swipeThreshold = 50;
+
+        document.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, {passive: true});
+
+        document.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, {passive: true});
+
+        function handleSwipe() {
+            if (touchendX < touchstartX - swipeThreshold) nextSlide(); // Swipe Izquierda -> Siguiente
+            if (touchendX > touchstartX + swipeThreshold) prevSlide(); // Swipe Derecha -> Anterior
+        }
+
+        // Fullscreen nativo
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error al intentar fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+        btnFs.addEventListener('click', toggleFullScreen);
+
+        // Inicializar
+        updateSlide(currentSlide);
+    });
+</script>
+
+</body>
+</html>
